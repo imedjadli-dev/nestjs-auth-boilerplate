@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
+import { SignInAuthDto } from './dto/signin-auth.dto';
 import { UpdateAuthDto } from './dto/update-auth.dto';
 
 @Injectable()
@@ -40,6 +41,38 @@ export class AuthService {
     });
 
     return { user, token };
+  }
+
+  async signIn(signInAuthDto: SignInAuthDto) {
+    const user = await this.prisma.users.findUnique({
+      where: { email: signInAuthDto.email },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Please check your email or password');
+    }
+
+    const isPasswordValid = await bcrypt.compare(
+      signInAuthDto.password,
+      user.password,
+    );
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Please check your email or password');
+    }
+
+    const payload = { sub: user.id, email: user.email, role: user.role };
+    const token = await this.jwtService.signAsync(payload);
+
+    return {
+      access_token: token,
+      user: {
+        id: user.id,
+        email: user.email,
+        fullname: user.fullname,
+        role: user.role,
+      },
+    };
   }
 
   findAll() {

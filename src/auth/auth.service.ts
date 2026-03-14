@@ -1,10 +1,16 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { UpdateAuthDto } from './dto/update-auth.dto';
+
 @Injectable()
 export class AuthService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jwtService: JwtService,
+  ) {}
 
   async signUp(createAuthDto: CreateAuthDto) {
     const existingUser = await this.prisma.users.findUnique({
@@ -15,7 +21,25 @@ export class AuthService {
       throw new UnauthorizedException('Please check your email or password');
     }
 
-    return this.prisma.users.create({ data: createAuthDto });
+    const HashedPassword = await bcrypt.hash(createAuthDto.password, 10);
+    const user = await this.prisma.users.create({
+      data: { ...createAuthDto, password: HashedPassword },
+
+      select: {
+        id: true,
+        email: true,
+        fullname: true,
+        role: true,
+      },
+    });
+
+    const token = await this.jwtService.signAsync({
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    });
+
+    return { user, token };
   }
 
   findAll() {

@@ -17,8 +17,8 @@ export class AuthController {
 
   @Post('signup')
   async signUp(@Body() createAuthDto: CreateAuthDto) {
-    await this.authService.signUp(createAuthDto);
-    return { message: 'User created successfully' };
+    const { user, token } = await this.authService.signUp(createAuthDto);
+    return { message: 'User created successfully', user, token };
   }
   @Get()
   findAll() {

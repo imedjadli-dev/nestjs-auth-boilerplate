@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { StringValue } from 'ms';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { SignInAuthDto } from './dto/signin-auth.dto';
@@ -12,6 +13,30 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
   ) {}
+
+  private async generateTokkens(userId: number, email: string, role: string) {
+    const payload = { sub: userId, email, role };
+
+    const [access_token, refresh_token] = await Promise.all([
+      this.jwtService.signAsync(payload, {
+        secret: process.env.JWT_SECRET as string,
+        expiresIn: process.env.JWT_EXPIRES_IN as StringValue,
+      }),
+      this.jwtService.signAsync(payload, {
+        secret: process.env.JWT_REFRESH_SECRET as string,
+        expiresIn: process.env.JWT_REFRESH_EXPIRES_IN as StringValue,
+      }),
+    ]);
+
+    return { access_token, refresh_token };
+  }
+
+  private async saveRefreshToken(userId: number, refreshToken: string) {
+    await this.prisma.users.update({
+      where: { id: userId },
+      data: { refreshToken },
+    });
+  }
 
   async signUp(createAuthDto: CreateAuthDto) {
     const existingUser = await this.prisma.users.findUnique({
@@ -61,18 +86,33 @@ export class AuthService {
       throw new UnauthorizedException('Please check your email or password');
     }
 
-    const payload = { sub: user.id, email: user.email, role: user.role };
-    const token = await this.jwtService.signAsync(payload);
+    const tokens = await this.generateTokkens(user.id, user.email, user.role);
+    await this.saveRefreshToken(user.id, tokens.refresh_token);
 
     return {
-      access_token: token,
       user: {
         id: user.id,
         email: user.email,
         fullname: user.fullname,
         role: user.role,
       },
+      ...tokens,
     };
+  }
+
+  async refresh(userId: number, email: string, role: string) {
+    const tokens = this.generateTokkens(userId, email, role);
+    await this.saveRefreshToken(userId, (await tokens).refresh_token);
+    return tokens;
+  }
+
+  async signOut(userId: number) {
+    await this.prisma.users.update({
+      where: { id: userId },
+      data: { refreshToken: null },
+    });
+
+    return { message: 'Signed out successfully' };
   }
 
   findAll() {
@@ -85,9 +125,5 @@ export class AuthService {
 
   update(id: number, updateAuthDto: UpdateAuthDto) {
     return `This action updates a #${id} auth`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} auth`;
   }
 }

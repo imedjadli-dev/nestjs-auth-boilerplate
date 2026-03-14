@@ -1,8 +1,6 @@
-import { Role } from '@generated/prisma/enums';
 import {
   Body,
   Controller,
-  Delete,
   Get,
   Param,
   Patch,
@@ -12,11 +10,11 @@ import {
 import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.dcorator';
-import { Roles } from './decorators/roles.decorator';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { SignInAuthDto } from './dto/signin-auth.dto';
 import { UpdateAuthDto } from './dto/update-auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RefreshTokenGuard } from './guards/refresh-token.guard';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -28,13 +26,13 @@ export class AuthController {
     return { message: 'User created successfully', user, token };
   }
 
+  @Public()
   @Post('signin')
   async signIn(@Body() SignInAuthDto: SignInAuthDto) {
-    const { user, access_token } = await this.authService.signIn(SignInAuthDto);
-    return { message: 'User signed in successfully', user, access_token };
+    return await this.authService.signIn(SignInAuthDto);
   }
   @Get('me')
-  @Roles(Role.USER)
+  //  @Roles(Role.USER)
   @UseGuards(JwtAuthGuard)
   getMe(@CurrentUser() user: any) {
     return user;
@@ -50,8 +48,15 @@ export class AuthController {
     return this.authService.update(+id, updateAuthDto);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.authService.remove(+id);
+  @Public()
+  @UseGuards(RefreshTokenGuard)
+  @Post('refresh')
+  async refresh(@CurrentUser() user: any) {
+    return this.authService.refresh(user.id, user.email, user.role);
+  }
+
+  @Post('signout')
+  async signOut(@CurrentUser() user: any) {
+    return this.authService.signOut(user.id);
   }
 }

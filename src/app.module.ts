@@ -7,6 +7,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
+import { envValidationSchema } from './config/env.validation';
 import { EmailModule } from './email/email.module';
 import { LoggerMiddleware } from './middleware/logger.middleware';
 @Module({
@@ -17,7 +18,10 @@ import { LoggerMiddleware } from './middleware/logger.middleware';
         limit: 10,
       },
     ]),
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validationSchema: envValidationSchema,
+    }),
     BullModule.forRoot({
       connection: { url: process.env.REDIS_URL },
     }),

@@ -11,6 +11,8 @@ import { EmailService } from 'src/email/email.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ChangePasswordAuthDto } from './dto/change-passowrd-auth.dto';
 import { CreateAuthDto } from './dto/create-auth.dto';
+import { ForgetPasswordDto } from './dto/forget-password-auth.dto';
+import { ResetPasswordDto } from './dto/reset-password-auth.dto';
 import { SignInAuthDto } from './dto/signin-auth.dto';
 import { UpdateAuthDto } from './dto/update-auth.dto';
 
@@ -231,6 +233,80 @@ export class AuthService {
     const tokens = await this.generateTokkens(user.id, user.email, user.role);
     await this.saveRefreshToken(user.id, tokens.refresh_token);
     return { message: 'Password changed successfully', ...tokens };
+  }
+
+  async forgetPassword(dto: ForgetPasswordDto) {
+    const user = await this.prisma.users.findUnique({
+      where: { email: dto.email },
+    });
+    if (!user) {
+      return { message: 'If this email exists, a reset code has been sent' };
+    }
+
+    const otp = generateOtp();
+    const resetPasswordExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await this.prisma.users.update({
+      where: { id: user.id },
+      data: {
+        resetPasswordOtp: otp,
+        resetPasswordOtpExpiresAt: resetPasswordExpiresAt,
+      },
+    });
+
+    await this.emailService.sendResetPassword(
+      user.email,
+      otp,
+      user.fullname ?? 'User',
+    );
+
+    return { message: 'Reset code has been sent' };
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const user = await this.prisma.users.findUnique({
+      where: { email: dto.email },
+    });
+
+    if (!user) {
+      throw new BadRequestException('Invalid request');
+    }
+
+    if (!user.resetPasswordOtp || !user.resetPasswordOtpExpiresAt) {
+      throw new BadRequestException('No reset code found , please try new one');
+    }
+
+    if (new Date() > user.resetPasswordOtpExpiresAt) {
+      throw new BadRequestException('Reset code has expired');
+    }
+
+    if (user.resetPasswordOtp !== dto.otp) {
+      throw new BadRequestException('Invalid reset code');
+    }
+
+    if (dto.newPassword !== dto.confirmPassword) {
+      throw new BadRequestException('Passwords do not match');
+    }
+
+    const isSamePassword = await bcrypt.compare(dto.newPassword, user.password);
+    if (isSamePassword) {
+      throw new BadRequestException(
+        'New password must be different from old one',
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(dto.newPassword, 10);
+    await this.prisma.users.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        resetPasswordOtp: null,
+        resetPasswordOtpExpiresAt: null,
+        refreshToken: null,
+      },
+    });
+
+    return { message: 'Password reset successfully. Please sign in again.' };
   }
 
   findAll() {

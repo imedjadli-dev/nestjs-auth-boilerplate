@@ -23,6 +23,8 @@ model users {
   isVerified Boolean @default(false)
   otp String?
   otpExpiresAt DateTime?
+  resetPasswordOtp String?
+  resetPasswordOtpExpiresAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

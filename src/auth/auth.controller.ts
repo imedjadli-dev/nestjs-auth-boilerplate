@@ -12,6 +12,8 @@ import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
 import { ChangePasswordAuthDto } from './dto/change-passowrd-auth.dto';
 import { CreateAuthDto } from './dto/create-auth.dto';
+import { ForgetPasswordDto } from './dto/forget-password-auth.dto';
+import { ResetPasswordDto } from './dto/reset-password-auth.dto';
 import { SignInAuthDto } from './dto/signin-auth.dto';
 import { UpdateAuthDto } from './dto/update-auth.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
@@ -77,5 +79,17 @@ export class AuthController {
     @Body() changePasswordAuthDto: ChangePasswordAuthDto,
   ) {
     return this.authService.changePassword(user.id, changePasswordAuthDto);
+  }
+
+  @Public()
+  @Post('forget-password')
+  async forgetPassword(@Body() dto: ForgetPasswordDto) {
+    return this.authService.forgetPassword(dto);
+  }
+
+  @Public()
+  @Post('reset-password')
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto);
   }
 }

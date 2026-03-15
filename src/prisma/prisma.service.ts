@@ -11,7 +11,7 @@ export class PrismaService
     console.log('RUNTIME URL:', process.env.DATABASE_RUNTIME_URL);
 
     const adapter = new PrismaPg({
-      connectionString: process.env.DATABASE_RUNTIME_URL!,
+      connectionString: process.env.DATABASE_URL!,
     });
     super({ adapter });
   }

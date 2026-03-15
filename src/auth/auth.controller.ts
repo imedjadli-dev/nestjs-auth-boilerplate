@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
-import { Public } from './decorators/public.dcorator';
+import { Public } from './decorators/public.decorator';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { SignInAuthDto } from './dto/signin-auth.dto';
 import { UpdateAuthDto } from './dto/update-auth.dto';
@@ -21,8 +21,7 @@ export class AuthController {
   @Public()
   @Post('signup')
   async signUp(@Body() createAuthDto: CreateAuthDto) {
-    const { user, token } = await this.authService.signUp(createAuthDto);
-    return { message: 'User created successfully', user, token };
+    return await this.authService.signUp(createAuthDto);
   }
 
   @Public()

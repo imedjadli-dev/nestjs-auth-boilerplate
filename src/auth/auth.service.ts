@@ -60,13 +60,10 @@ export class AuthService {
       },
     });
 
-    const token = await this.jwtService.signAsync({
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-    });
+    const tokens = await this.generateTokkens(user.id, user.email, user.role);
+    await this.saveRefreshToken(user.id, tokens.refresh_token);
 
-    return { user, token };
+    return { user, ...tokens };
   }
 
   async signIn(signInAuthDto: SignInAuthDto) {

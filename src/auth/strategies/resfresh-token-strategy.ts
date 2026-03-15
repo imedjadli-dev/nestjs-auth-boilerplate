@@ -21,6 +21,8 @@ export class RefreshTokenStrategy extends PassportStrategy(
   async validate(req: Request, payload: { sub: number; email: string }) {
     const refreshToken = req.headers.authorization?.replace('Bearer ', '');
 
+    if (!refreshToken) throw new UnauthorizedException();
+
     const user = await this.prisma.users.findUnique({
       where: { id: payload.sub },
     });

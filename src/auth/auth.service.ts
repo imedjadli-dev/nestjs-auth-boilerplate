@@ -9,6 +9,7 @@ import { StringValue } from 'ms';
 import { generateOtp } from 'src/common/helpers/otp.helper';
 import { EmailService } from 'src/email/email.service';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { ChangePasswordAuthDto } from './dto/change-passowrd-auth.dto';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { SignInAuthDto } from './dto/signin-auth.dto';
 import { UpdateAuthDto } from './dto/update-auth.dto';
@@ -188,6 +189,48 @@ export class AuthService {
     await this.emailService.sendOtp(user.email, otp, user.fullname ?? 'User');
 
     return { message: 'OTP resent successfully' };
+  }
+
+  async changePassword(userId: number, dto: ChangePasswordAuthDto) {
+    const user = await this.prisma.users.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const isCurrentPasswordValid = await bcrypt.compare(
+      dto.currentPassword,
+      user.password,
+    );
+
+    if (!isCurrentPasswordValid) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    if (dto.newPassword !== dto.confirmPassword) {
+      throw new BadRequestException(
+        'Confirm password and new password do not match',
+      );
+    }
+
+    const isSamePassword = await bcrypt.compare(dto.newPassword, user.password);
+    if (isSamePassword) {
+      throw new BadRequestException(
+        'New password must be different from the old one',
+      );
+    }
+
+    const hashedNewPassword = await bcrypt.hash(dto.newPassword, 10);
+    await this.prisma.users.update({
+      where: { id: userId },
+      data: { password: hashedNewPassword },
+    });
+
+    const tokens = await this.generateTokkens(user.id, user.email, user.role);
+    await this.saveRefreshToken(user.id, tokens.refresh_token);
+    return { message: 'Password changed successfully', ...tokens };
   }
 
   findAll() {

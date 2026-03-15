@@ -10,6 +10,7 @@ import {
 import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
+import { ChangePasswordAuthDto } from './dto/change-passowrd-auth.dto';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { SignInAuthDto } from './dto/signin-auth.dto';
 import { UpdateAuthDto } from './dto/update-auth.dto';
@@ -68,5 +69,13 @@ export class AuthController {
   @Post('signout')
   async signOut(@CurrentUser() user: any) {
     return this.authService.signOut(user.id);
+  }
+
+  @Post('change-password')
+  async changePassword(
+    @CurrentUser() user: any,
+    @Body() changePasswordAuthDto: ChangePasswordAuthDto,
+  ) {
+    return this.authService.changePassword(user.id, changePasswordAuthDto);
   }
 }

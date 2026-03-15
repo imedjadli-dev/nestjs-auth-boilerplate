@@ -7,6 +7,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
@@ -29,6 +30,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { ttl: 60000, limit: 3 } })
   @Post('signin')
   async signIn(@Body() SignInAuthDto: SignInAuthDto) {
     return await this.authService.signIn(SignInAuthDto);
@@ -82,6 +84,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { ttl: 60000, limit: 3 } })
   @Post('forget-password')
   async forgetPassword(@Body() dto: ForgetPasswordDto) {
     return this.authService.forgetPassword(dto);

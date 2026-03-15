@@ -1,9 +1,9 @@
 import { PrismaService } from '@lib/prisma.service';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
+import * as bcrypt from 'bcrypt';
 import { Request } from 'express';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-
 @Injectable()
 export class RefreshTokenStrategy extends PassportStrategy(
   Strategy,
@@ -32,6 +32,9 @@ export class RefreshTokenStrategy extends PassportStrategy(
     if (user.refreshToken !== refreshToken) {
       throw new UnauthorizedException();
     }
+
+    const isValid = await bcrypt.compare(refreshToken, user.refreshToken);
+    if (!isValid) throw new UnauthorizedException();
 
     return { ...user, refreshToken };
   }

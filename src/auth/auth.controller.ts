@@ -13,7 +13,6 @@ import { Public } from './decorators/public.dcorator';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { SignInAuthDto } from './dto/signin-auth.dto';
 import { UpdateAuthDto } from './dto/update-auth.dto';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RefreshTokenGuard } from './guards/refresh-token.guard';
 @Controller('auth')
 export class AuthController {
@@ -33,7 +32,6 @@ export class AuthController {
   }
   @Get('me')
   //  @Roles(Role.USER)
-  @UseGuards(JwtAuthGuard)
   getMe(@CurrentUser() user: any) {
     return user;
   }

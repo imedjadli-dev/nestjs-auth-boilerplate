@@ -32,9 +32,10 @@ export class AuthService {
   }
 
   private async saveRefreshToken(userId: number, refreshToken: string) {
+    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
     await this.prisma.users.update({
       where: { id: userId },
-      data: { refreshToken },
+      data: { refreshToken: hashedRefreshToken },
     });
   }
 
@@ -101,8 +102,8 @@ export class AuthService {
   }
 
   async refresh(userId: number, email: string, role: string) {
-    const tokens = this.generateTokkens(userId, email, role);
-    await this.saveRefreshToken(userId, (await tokens).refresh_token);
+    const tokens = await this.generateTokkens(userId, email, role);
+    await this.saveRefreshToken(userId, tokens.refresh_token);
     return tokens;
   }
 

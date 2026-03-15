@@ -13,6 +13,7 @@ import { Public } from './decorators/public.decorator';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { SignInAuthDto } from './dto/signin-auth.dto';
 import { UpdateAuthDto } from './dto/update-auth.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
 import { RefreshTokenGuard } from './guards/refresh-token.guard';
 @Controller('auth')
 export class AuthController {
@@ -33,6 +34,19 @@ export class AuthController {
   //  @Roles(Role.USER)
   getMe(@CurrentUser() user: any) {
     return user;
+  }
+
+  @Post('verify-email')
+  async verifyEmail(
+    @CurrentUser() user: any,
+    @Body() verifyEmailDto: VerifyEmailDto,
+  ) {
+    return this.authService.verifyEmail(user.id, verifyEmailDto.otp);
+  }
+
+  @Post('resend-otp')
+  async resendOtp(@CurrentUser() user: any) {
+    return this.authService.resendOtp(user.id);
   }
 
   @Get(':id')

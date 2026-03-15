@@ -20,6 +20,9 @@ model users {
   fullname String?
   role Role @default(USER)
   refreshToken String?
+  isVerified Boolean @default(false)
+  otp String?
+  otpExpiresAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

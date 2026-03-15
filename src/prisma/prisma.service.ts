@@ -8,8 +8,6 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   constructor() {
-    console.log('RUNTIME URL:', process.env.DATABASE_RUNTIME_URL);
-
     const adapter = new PrismaPg({
       connectionString: process.env.DATABASE_URL!,
     });

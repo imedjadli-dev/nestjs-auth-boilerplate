@@ -31,7 +31,6 @@ export class AuthController {
     return await this.authService.signIn(SignInAuthDto);
   }
   @Get('me')
-  //  @Roles(Role.USER)
   getMe(@CurrentUser() user: any) {
     return user;
   }

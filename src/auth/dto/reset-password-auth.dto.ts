@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import {
   IsEmail,
   IsNotEmpty,
@@ -8,14 +9,17 @@ import {
 } from 'class-validator';
 
 export class ResetPasswordDto {
+  @ApiProperty({ example: 'imedjadli@example.com' })
   @IsEmail()
   @IsNotEmpty()
   email: string;
 
+  @ApiProperty({ example: '123456' })
   @IsString()
   @Length(6, 6, { message: 'OTP must be exactly 6 digits' })
   otp: string;
 
+  @ApiProperty({ example: 'newPassword123' })
   @IsString()
   @MinLength(8)
   @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, {
@@ -23,6 +27,7 @@ export class ResetPasswordDto {
   })
   newPassword: string;
 
+  @ApiProperty({ example: 'newPassword123' })
   @IsString()
   @IsNotEmpty()
   confirmPassword: string;

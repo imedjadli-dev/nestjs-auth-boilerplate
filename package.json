@@ -1,8 +1,8 @@
 {
-  "name": "backend",
+  "name": "Auth-boilerplate",
   "version": "0.0.1",
-  "description": "",
-  "author": "",
+  "description": "nestjs-auth-boilerplate",
+  "author": "Imed Jadli",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {

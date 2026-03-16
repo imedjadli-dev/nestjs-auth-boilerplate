@@ -24,6 +24,7 @@
       "@lib/*": ["src/prisma/*"],
       "@generated/*": ["generated/*"]
     },
-    "strictPropertyInitialization": false
+    "strictPropertyInitialization": false,
+    "types": ["jest", "node"]
   }
 }

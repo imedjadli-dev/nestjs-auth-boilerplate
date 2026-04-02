@@ -123,7 +123,7 @@ cd nestjs-auth-boilerplate
 **2. Install dependencies:**
 
 ```bash
-npm install
+pnpm install
 ```
 
 **3. Set up environment variables:**
@@ -153,6 +153,26 @@ npm run start:dev
 http://localhost:4000/api/docs
 ```
 
+## Docker
+
+The app is fully dockerized using a multi-stage build for a lean and secure production image.
+
+### Prerequisites
+
+- Docker installed on your machine
+
+### Build the image
+
+```bash
+docker build -t nestjs-auth-boilerplate .
+```
+
+### Run the container
+
+```bash
+docker run --env-file .env --dns 8.8.8.8 -p 4000:4000 nestjs-auth-boilerplate
+```
+
 ## Environment Variables
 
 ```env
@@ -160,7 +180,7 @@ http://localhost:4000/api/docs
 NODE_ENV=development
 PORT=4000
 
-# Database (Supabase or any PostgreSQL)
+# Database (Supabase or  PostgreSQL)
 DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE
 DATABASE_DIRECT_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE
 
@@ -330,7 +350,6 @@ enum Role {
 - [ ] Google OAuth2
 - [ ] Facebook OAuth2
 - [ ] E2E tests
-- [ ] Docker + docker-compose
 - [ ] Winston logger
 
 ## License

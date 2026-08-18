@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-      environment {
-        PATH+HOMEBREW = '/opt/homebrew/bin'
-    }
-
     stages {
         stage('Checkout'){
             steps {
@@ -14,6 +10,8 @@ pipeline {
 
         stage('Environment'){
             steps {
+                withEnv(["PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"]) {
+
                 sh ''' 
                     echo "PATH=$PATH"
                     node --version
@@ -21,29 +19,35 @@ pipeline {
                 '''
             }
         }
-
+    }  
         stage('Install Dependencies'){
             steps {
+            withEnv(["PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"]) {
                 sh 'pnpm install --frozen-lockfile'
             }
         }
+}   
 
         stage('Lint'){
             steps {
+            withEnv(["PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"]) {
                 sh 'pnpm run lint'
             }
-        }
-
+          }
+     }
         stage('Test'){
             steps {
+                 withEnv(["PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"]) {
                 sh 'pnpm run test -- --runInBand'
             }
         }
-
+    }
          stage('Build') {
             steps {
+                withEnv(["PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"]) {
                 sh 'pnpm run build'
             }
         }
+    }
     }
 }

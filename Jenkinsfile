@@ -11,7 +11,7 @@ pipeline {
         stage('Environment'){
             steps {
                 sh ''' 
-                    echo "PATH=$PATH"
+                    PATH = "/opt/homebrew/bin:${env.PATH}"
                     node --version
                     pnpm --version
                 '''

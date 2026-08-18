@@ -28,6 +28,14 @@ pipeline {
         }
 }   
 
+        stage('Generate Prisma Client') {
+            steps {
+                withEnv(["PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"]) {
+                    sh 'pnpm exec prisma generate'
+                }
+            }
+        }
+
         stage('Lint'){
             steps {
             withEnv(["PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"]) {
@@ -38,7 +46,7 @@ pipeline {
         stage('Test'){
             steps {
                  withEnv(["PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"]) {
-                sh 'pnpm run test -- --runInBand'
+                sh 'pnpm run test --runInBand'
             }
         }
     }

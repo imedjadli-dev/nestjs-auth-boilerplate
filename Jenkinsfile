@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+      environment {
+        PATH+HOMEBREW = '/opt/homebrew/bin'
+    }
+
     stages {
         stage('Checkout'){
             steps {
@@ -11,7 +15,7 @@ pipeline {
         stage('Environment'){
             steps {
                 sh ''' 
-                    PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+                    echo "PATH=$PATH"
                     node --version
                     pnpm --version
                 '''

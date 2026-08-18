@@ -3,7 +3,6 @@ import {
   Controller,
   Get,
   Param,
-  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -22,8 +21,7 @@ import { CreateAuthDto } from './dto/create-auth.dto';
 import { ForgetPasswordDto } from './dto/forget-password-auth.dto';
 import { ResetPasswordDto } from './dto/reset-password-auth.dto';
 import { SignInAuthDto } from './dto/signin-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
-import { VerifyEmailDto } from './dto/verify-email.dto';
+ import { VerifyEmailDto } from './dto/verify-email.dto';
 import { RefreshTokenGuard } from './guards/refresh-token.guard';
 
 @ApiTags('Authentication')
@@ -87,10 +85,7 @@ export class AuthController {
     return this.authService.findOne(+id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAuthDto: UpdateAuthDto) {
-    return this.authService.update(+id, updateAuthDto);
-  }
+ 
 
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Refresh tokens' })

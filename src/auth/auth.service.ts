@@ -14,7 +14,6 @@ import { CreateAuthDto } from './dto/create-auth.dto';
 import { ForgetPasswordDto } from './dto/forget-password-auth.dto';
 import { ResetPasswordDto } from './dto/reset-password-auth.dto';
 import { SignInAuthDto } from './dto/signin-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -315,9 +314,5 @@ export class AuthService {
 
   findOne(id: number) {
     return `This action returns a #${id} auth`;
-  }
-
-  update(id: number, updateAuthDto: UpdateAuthDto) {
-    return `This action updates a #${id} auth`;
   }
 }

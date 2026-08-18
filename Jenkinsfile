@@ -13,7 +13,7 @@ pipeline {
                 sh ''' 
                     echo "PATH=$PATH"
                     node --version
-                    npm --version
+                    pnpm --version
                 '''
             }
         }

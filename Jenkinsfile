@@ -2,60 +2,47 @@ pipeline {
     agent any
 
     stages {
-        stage('Checkout'){
+        stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Environment'){
+        stage('Environment') {
             steps {
-                withEnv(["PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"]) {
-
-                sh ''' 
+                    sh '''
                     echo "PATH=$PATH"
                     node --version
                     pnpm --version
                 '''
             }
         }
-    }  
-        stage('Install Dependencies'){
+        stage('Install Dependencies') {
             steps {
-            withEnv(["PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"]) {
-                sh 'pnpm install --frozen-lockfile'
+                    sh 'pnpm install --frozen-lockfile'
             }
         }
-}   
 
         stage('Generate Prisma Client') {
             steps {
-                withEnv(["PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"]) {
                     sh 'pnpm exec prisma generate'
-                }
             }
         }
 
-        stage('Lint'){
+        stage('Lint') {
             steps {
-            withEnv(["PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"]) {
-                sh 'pnpm run lint'
-            }
-          }
-     }
-        stage('Test'){
-            steps {
-                 withEnv(["PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"]) {
-                sh 'pnpm run test --runInBand'
+                    sh 'pnpm run lint'
             }
         }
-    }
-         stage('Build') {
+        stage('Test') {
             steps {
-                withEnv(["PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"]) {
-                sh 'pnpm run build'
+                    sh 'pnpm run test --runInBand'
             }
         }
-    }
+        stage('Build') {
+            steps {
+                    sh 'pnpm run build'
+            }
+        }
     }
 }

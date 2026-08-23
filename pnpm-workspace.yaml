@@ -1,0 +1,8 @@
+onlyBuiltDependencies:
+  - '@nestjs/core'
+  - '@prisma/engines'
+  - '@scarf/scarf'
+  - bcrypt
+  - msgpackr-extract
+  - prisma
+  - unrs-resolver

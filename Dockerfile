@@ -10,7 +10,7 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 
 COPY . .
 
-RUN pnpx prisma generate
+RUN pnpm prisma generate
 
 RUN pnpm run build
 

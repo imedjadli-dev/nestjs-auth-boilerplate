@@ -1,11 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -21,7 +14,7 @@ import { CreateAuthDto } from './dto/create-auth.dto';
 import { ForgetPasswordDto } from './dto/forget-password-auth.dto';
 import { ResetPasswordDto } from './dto/reset-password-auth.dto';
 import { SignInAuthDto } from './dto/signin-auth.dto';
- import { VerifyEmailDto } from './dto/verify-email.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
 import { RefreshTokenGuard } from './guards/refresh-token.guard';
 
 @ApiTags('Authentication')
@@ -84,8 +77,6 @@ export class AuthController {
   findOne(@Param('id') id: string) {
     return this.authService.findOne(+id);
   }
-
- 
 
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Refresh tokens' })

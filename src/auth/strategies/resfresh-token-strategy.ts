@@ -27,7 +27,7 @@ export class RefreshTokenStrategy extends PassportStrategy(
       where: { id: payload.sub },
     });
 
-    if (!user || !user.refreshToken) {
+    if (!user?.refreshToken) {
       throw new UnauthorizedException();
     }
 

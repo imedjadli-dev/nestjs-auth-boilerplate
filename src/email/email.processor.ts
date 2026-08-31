@@ -16,7 +16,7 @@ import {
 export class EmailProcessor extends WorkerHost {
   private readonly logger = new Logger(EmailProcessor.name);
 
-  private transporter = nodemailer.createTransport({
+  private readonly transporter = nodemailer.createTransport({
     host: process.env.MAIL_HOST,
     port: Number.parseInt(process.env.MAIL_PORT!, 10),
     secure: process.env.MAIL_SECURE === 'true',

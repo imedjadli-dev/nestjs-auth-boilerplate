@@ -10,38 +10,69 @@ pipeline {
 
         stage('Environment') {
             steps {
-                    sh '''
+                sh '''
                     echo "PATH=$PATH"
                     node --version
                     pnpm --version
+                    java -version
                 '''
             }
         }
+
         stage('Install Dependencies') {
             steps {
-                    sh 'pnpm install --frozen-lockfile'
+                sh 'pnpm install --frozen-lockfile'
             }
         }
 
         stage('Generate Prisma Client') {
             steps {
-                    sh 'pnpm exec prisma generate'
+                sh 'pnpm exec prisma generate'
             }
         }
 
-        stage('Lint') {
-            steps {
-                    sh 'pnpm run lint'
+        stage('Code Quality Checks') {
+            parallel {
+                stage('Lint') {
+                    steps {
+                        sh 'pnpm run lint'
+                    }
+                }
+
+                stage('Test') {
+                    steps {
+                        sh 'pnpm run test --coverage --runInBand'
+                    }
+                }
             }
         }
-        stage('Test') {
-            steps {
-                    sh 'pnpm run test --runInBand'
-            }
-        }
+
         stage('Build') {
             steps {
-                    sh 'pnpm run build'
+                sh 'pnpm run build'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh '''
+                        export JAVA_HOME=/opt/homebrew/opt/openjdk@21
+                        export PATH=$JAVA_HOME/bin:$PATH
+
+                        java -version
+
+                        npx sonar-scanner
+                    '''
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 10, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
             }
         }
     }

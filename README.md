@@ -347,6 +347,7 @@ enum Role {
 
 ## Roadmap
 
+- [ ] Jenkins
 - [ ] DevOps
 
 

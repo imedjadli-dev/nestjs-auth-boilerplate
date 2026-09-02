@@ -347,10 +347,8 @@ enum Role {
 
 ## Roadmap
 
-- [ ] Google OAuth2
-- [ ] Facebook OAuth2
-- [ ] E2E tests
-- [ ] Winston logger
+- [ ] DevOps
+
 
 ## License
 

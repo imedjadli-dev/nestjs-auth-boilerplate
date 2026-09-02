@@ -64,7 +64,7 @@ pipeline {
 
                          npx sonar-scanner \
                         -Dsonar.host.url=http://127.0.0.1:9000 \
-                        -Dsonar.token=sqa_64801f31f1e77bfbcd148507fc7b0bc0c09e789c
+                        -Dsonar.token=$SONAR_TOKEN
                     '''
                 }
             }

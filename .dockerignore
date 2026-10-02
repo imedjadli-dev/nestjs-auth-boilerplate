@@ -1,5 +1,12 @@
 node_modules
 dist
-.env
+coverage
 .git
+.github
+.env*
+!.env.example
 *.log
+test
+Jenkinsfile
+docker-compose*.yml
+*.md

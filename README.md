@@ -182,7 +182,6 @@ PORT=4000
 
 # Database (Supabase or  PostgreSQL)
 DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE
-DATABASE_DIRECT_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE
 
 # JWT
 JWT_SECRET=your-super-secret-key

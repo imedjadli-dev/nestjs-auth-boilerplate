@@ -10,6 +10,7 @@ import { AuthModule } from './auth/auth.module';
 import { envValidationSchema } from './config/env.validation';
 import { EmailModule } from './email/email.module';
 import { LoggerMiddleware } from './middleware/logger.middleware';
+import { HealthController } from './health/health.controller';
 @Module({
   imports: [
     ThrottlerModule.forRoot([
@@ -29,7 +30,7 @@ import { LoggerMiddleware } from './middleware/logger.middleware';
     AuthModule,
     EmailModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, HealthController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule implements NestModule {

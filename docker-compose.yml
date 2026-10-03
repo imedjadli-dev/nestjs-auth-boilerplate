@@ -1,0 +1,66 @@
+x-app: &app
+  build: .
+  image: nestjs-auth:${IMAGE_TAG:-local}
+  env_file: .env
+  environment:
+    NODE_ENV: production
+    DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    REDIS_URL: redis://default:${REDIS_PASSWORD}@redis:6379
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+     POSTGRES_USER: ${POSTGRES_USER}
+     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+     POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "127.0.0.1:5433:5432" 
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}", "--appendonly", "yes" , "--maxmemory-policy", "noeviction"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+    - "127.0.0.1:6379:6379" 
+
+  migrate:
+    <<: *app
+    command: ["node_modules/.bin/prisma", "migrate", "deploy"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+   <<: *app
+   ports:
+     - "4000:4000"
+   depends_on:
+     postgres:
+       condition: service_healthy
+     redis:
+       condition: service_healthy
+     migrate:
+       condition: service_completed_successfully
+   restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
+
+
+

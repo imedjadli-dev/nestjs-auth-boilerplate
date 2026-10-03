@@ -10,4 +10,5 @@ generated
 test
 Jenkinsfile
 docker-compose*.yml
+docs
 *.md

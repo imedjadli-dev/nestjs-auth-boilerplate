@@ -1,6 +1,6 @@
 # NestJS Authentication Boilerplate
 
-A production-ready authentication boilerplate built with NestJS, PostgreSQL, and Prisma. Includes everything you need to kickstart a secure backend API.
+A production-ready authentication boilerplate built with NestJS, PostgreSQL, and Prisma. Includes everything you need to kickstart a secure backend API, plus a Dockerized stack and a Jenkins CI pipeline.
 
 ## Tech Stack
 
@@ -13,6 +13,8 @@ A production-ready authentication boilerplate built with NestJS, PostgreSQL, and
 - **Documentation**: Swagger
 - **Security**: Helmet + @nestjs/throttler
 - **Testing**: Jest
+- **Containers**: Docker + Docker Compose
+- **CI**: Jenkins + SonarQube (quality gate)
 
 ## Features
 
@@ -32,58 +34,30 @@ A production-ready authentication boilerplate built with NestJS, PostgreSQL, and
 - ✅ Security headers (Helmet)
 - ✅ Swagger API documentation
 - ✅ Environment validation (Joi)
-- ✅ Global exception filter
-- ✅ Request logger middleware
+- ✅ Health check endpoint
 - ✅ Unit tests
 
 ## Project Structure
 
 ```
-src/
-├── auth/
-│   ├── decorators/
-│   │   ├── current-user.decorator.ts
-│   │   ├── public.decorator.ts
-│   │   └── roles.decorator.ts
-│   ├── dto/
-│   │   ├── create-auth.dto.ts
-│   │   ├── signin-auth.dto.ts
-│   │   ├── verify-email.dto.ts
-│   │   ├── change-password.dto.ts
-│   │   ├── forgot-password.dto.ts
-│   │   └── reset-password.dto.ts
-│   ├── guards/
-│   │   ├── jwt-auth.guard.ts
-│   │   ├── refresh-token.guard.ts
-│   │   ├── roles.guard.ts
-│   │   └── verified-user.guard.ts
-│   ├── strategies/
-│   │   ├── jwt.strategy.ts
-│   │   └── refresh-token.strategy.ts
-│   ├── auth.controller.ts
-│   ├── auth.module.ts
-│   ├── auth.service.ts
-│   └── auth.service.spec.ts
-├── common/
-│   └── helpers/
-│       └── otp.helper.ts
-├── config/
-│   └── env.validation.ts
-├── email/
-│   ├── email.constants.ts
-│   ├── email.module.ts
-│   ├── email.processor.ts
-│   ├── email.service.ts
-│   └── email.templates.ts
-├── middleware/
-│   ├── filters/
-│   │   └── http-exception.filter.ts
-│   └── logger.middleware.ts
-├── prisma/
-│   ├── prisma.module.ts
-│   └── prisma.service.ts
-├── app.module.ts
-└── main.ts
+.
+├── prisma/                 # schema and migrations
+├── src/
+│   ├── auth/               # controller, service, DTOs, guards, strategies, decorators
+│   ├── common/             # shared helpers (OTP)
+│   ├── config/             # environment validation (Joi)
+│   ├── email/              # BullMQ queue, processor, mail service and templates
+│   ├── health/             # GET /health
+│   ├── middleware/         # request logger, global exception filter
+│   ├── prisma/             # Prisma module and service
+│   ├── app.module.ts
+│   └── main.ts
+├── test/
+├── docs/                   # CI pipeline and Jenkins setup (CI.md)
+├── Dockerfile
+├── docker-compose.yml
+├── Jenkinsfile
+└── sonar-project.properties
 ```
 
 ## API Endpoints
@@ -103,13 +77,20 @@ src/
 | POST   | `/api/v1/auth/reset-password`  | Public        | Reset password with OTP |
 | POST   | `/api/v1/auth/change-password` | Bearer Token  | Change password         |
 
+### Health
+
+| Method | Endpoint  | Auth   | Description                                                        |
+| ------ | --------- | ------ | ------------------------------------------------------------------ |
+| GET    | `/health` | Public | Liveness check. Outside the `/api/v1` prefix and not rate limited. |
+
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+
-- PostgreSQL
-- Redis
+- Node.js 24 (matches CI and the Docker image)
+- pnpm (via Corepack: `corepack enable`; the version is pinned in `package.json`)
+- PostgreSQL and Redis (or use the Docker Compose stack below)
+- Docker with the Compose plugin (optional, for the containerized stack)
 
 ### Installation
 
@@ -123,6 +104,7 @@ cd nestjs-auth-boilerplate
 **2. Install dependencies:**
 
 ```bash
+corepack enable
 pnpm install
 ```
 
@@ -132,19 +114,19 @@ pnpm install
 cp .env.example .env
 ```
 
-Fill in your `.env` file — see [Environment Variables](#environment-variables) section.
+Fill in your `.env` file. Every variable is listed in [`.env.example`](.env.example).
 
 **4. Run database migrations:**
 
 ```bash
-npx prisma migrate dev
-npx prisma generate
+pnpm exec prisma migrate dev
+pnpm exec prisma generate
 ```
 
 **5. Start the development server:**
 
 ```bash
-npm run start:dev
+pnpm start:dev
 ```
 
 **6. Open Swagger docs:**
@@ -153,57 +135,63 @@ npm run start:dev
 http://localhost:4000/api/docs
 ```
 
+## Scripts
+
+| Script                | Description                                                     |
+| --------------------- | --------------------------------------------------------------- |
+| `pnpm start:dev`      | Start in watch mode                                             |
+| `pnpm build`          | Compile to `dist/`                                              |
+| `pnpm start:prod`     | Run the compiled app (`node dist/src/main`)                     |
+| `pnpm lint`           | ESLint with auto-fix (local use)                                |
+| `pnpm lint:ci`        | ESLint without auto-fix, exits non-zero on errors (used by CI)  |
+| `pnpm test`           | Unit tests                                                      |
+| `pnpm test:cov`       | Unit tests with coverage (feeds SonarQube)                      |
+
 ## Docker
 
-The app is fully dockerized using a multi-stage build for a lean and secure production image.
+The repository ships a single-stage `Dockerfile` and a `docker-compose.yml` that runs the whole stack.
 
-### Prerequisites
+The image:
+- is based on `node:24-alpine`, with pnpm pinned through Corepack (`packageManager` field)
+- runs as the non-root `node` user
+- includes a `HEALTHCHECK` on `/health`
+- keeps devDependencies so the same image can run `prisma migrate deploy`
 
-- Docker installed on your machine
+### Services
 
-### Build the image
+| Service    | Description                                                         | Host port               |
+| ---------- | ------------------------------------------------------------------- | ----------------------- |
+| `postgres` | PostgreSQL 17 with a persistent volume and healthcheck              | `127.0.0.1:5433`        |
+| `redis`    | Redis 7, password protected, `noeviction` policy (required by BullMQ) | `127.0.0.1:6379`      |
+| `migrate`  | One-shot job that runs `prisma migrate deploy`, then exits          | none                    |
+| `api`      | The NestJS app, starts after Postgres, Redis and migrations are ready | `4000`                |
+
+Postgres is published on host port `5433` to avoid clashing with a local PostgreSQL on `5432`. Containers reach each other through the service names (`postgres`, `redis`).
+
+### Run the stack
 
 ```bash
-docker build -t nestjs-auth-boilerplate .
+cp .env.example .env        # fill in values, including the compose variables
+docker compose up -d --build --wait
+docker compose ps           # api, postgres and redis should be healthy; migrate exited (0)
+curl -i http://localhost:4000/health
 ```
 
-### Run the container
+### Stop and clean up
 
 ```bash
-docker run --env-file .env --dns 8.8.8.8 -p 4000:4000 nestjs-auth-boilerplate
+docker compose down         # keep the data
+docker compose down -v      # also delete the database and Redis volumes
 ```
 
-## Environment Variables
+### Notes
 
-```env
-# Application
-NODE_ENV=development
-PORT=4000
-
-# Database (Supabase or  PostgreSQL)
-DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE
-
-# JWT
-JWT_SECRET=your-super-secret-key
-JWT_EXPIRES_IN=15m
-JWT_REFRESH_SECRET=your-refresh-secret-key
-JWT_REFRESH_EXPIRES_IN=7d
-
-# Redis
-REDIS_URL=redis://default:password@HOST:6379
-
-# Mail (Mailtrap for development)
-MAIL_HOST=sandbox.smtp.mailtrap.io
-MAIL_PORT=2525
-MAIL_SECURE=false
-MAIL_USER=your_mailtrap_user
-MAIL_PASS=your_mailtrap_pass
-MAIL_FROM=noreply@yourdomain.com
-
-
-```
+- `docker-compose.yml` overrides `DATABASE_URL` and `REDIS_URL` for the containers, so your `.env` can keep `localhost` values for running the app outside Docker.
+- Remove the `ports` entries for Postgres and Redis if you deploy the stack anywhere other than a development machine.
 
 ## Authentication Flow
+
+All paths below are relative to the `/api/v1` prefix.
 
 ### Standard Authentication
 
@@ -249,9 +237,9 @@ POST /auth/reset-password
 
 | Guard               | Description                                       |
 | ------------------- | ------------------------------------------------- |
-| `JwtAuthGuard`      | Applied globally — protects all routes by default |
+| `JwtAuthGuard`      | Applied globally: protects all routes by default  |
 | `RefreshTokenGuard` | Validates refresh tokens on `/auth/refresh`       |
-| `RolesGuard`        | Applied globally — checks user role               |
+| `RolesGuard`        | Applied globally: checks user role                |
 | `VerifiedUserGuard` | Checks if user has verified their email           |
 
 ### Decorators
@@ -269,69 +257,15 @@ POST /auth/reset-password
 @CurrentUser('id') userId: number // specific field
 ```
 
-### Usage Example
+## CI/CD Pipeline
 
-```ts
-@Controller('products')
-export class ProductsController {
-  // public route — no token needed
-  @Public()
-  @Get()
-  findAll() {}
+A Jenkins pipeline (`Jenkinsfile`) runs on every build: install, lint and tests in parallel, SonarQube analysis with a quality gate, Docker image build, then the full Docker Compose stack is started and verified through `GET /health`. The stack is torn down after each run, so the pipeline is a verification, not a deployment.
 
-  // any authenticated user
-  @Get(':id')
-  findOne() {}
-
-  // authenticated + email verified
-  @UseGuards(VerifiedUserGuard)
-  @Post()
-  create(@CurrentUser() user: any) {}
-
-  // admin only
-  @Roles(Role.ADMIN)
-  @Delete(':id')
-  remove(@CurrentUser('id') userId: number) {}
-}
-```
-
-## Running Tests
-
-```bash
-# unit tests
-npm run test
-
-# watch mode
-npm run test:watch
-
-# coverage
-npm run test:cov
-```
+Stages and the required Jenkins configuration are documented in [docs/CI.md](docs/CI.md).
 
 ## Database Schema
 
-```prisma
-model users {
-  id                        Int       @id @default(autoincrement())
-  email                     String    @unique
-  password                  String?
-  fullname                  String?
-  role                      Role      @default(USER)
-  refreshToken              String?
-  isVerified                Boolean   @default(false)
-  otp                       String?
-  otpExpiresAt              DateTime?
-  resetPasswordOtp          String?
-  resetPasswordOtpExpiresAt DateTime?
-  createdAt                 DateTime  @default(now())
-  updatedAt                 DateTime  @updatedAt
-}
-
-enum Role {
-  USER
-  ADMIN
-}
-```
+See [`prisma/schema.prisma`](prisma/schema.prisma) for the models and migrations.
 
 ## Security
 
@@ -343,12 +277,17 @@ enum Role {
 - Rate limiting on sensitive endpoints
 - HTTP security headers via **Helmet**
 - Environment variables validated on startup
+- Docker container runs as a non-root user
+- `.env` is never committed and is excluded from the Docker build context
+- CI secrets (SonarQube token, application `.env`) are injected through Jenkins credentials
 
 ## Roadmap
 
-- [ ] Jenkins
-- [ ] DevOps
-
+- [x] Jenkins CI pipeline (lint, tests, SonarQube quality gate)
+- [x] Docker Compose stack (API, PostgreSQL, Redis, migrations)
+- [ ] Push the image to Docker Hub and Nexus
+- [ ] Image vulnerability scan (Trivy) before publishing
+- [ ] Automated deployment
 
 ## License
 

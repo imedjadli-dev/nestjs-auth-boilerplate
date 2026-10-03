@@ -10,7 +10,7 @@ pipeline {
 
     tools {
         nodejs 'node24'
-        jdk 'JAVA_HOME'
+        jdk 'jdk21'
     }
 
     environment {

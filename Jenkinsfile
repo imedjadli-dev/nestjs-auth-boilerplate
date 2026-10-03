@@ -1,24 +1,38 @@
 pipeline {
     agent any
 
+    options {
+        timestamps()
+        timeout(time: 30, unit: 'MINUTES')
+        disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
+
+    tools {
+        nodejs 'node24'
+        jdk 'jdk17'
+    }
+
+    environment {
+        COMPOSE_PROJECT_NAME = "nestjs-auth-${BUILD_NUMBER}"
+        IMAGE_NAME = 'nestjs-auth'
+        IMAGE_TAG = "${BUILD_NUMBER}"
+    }
+
     stages {
-        
-        stage('Environment') {
+        stage('Project Setup') {
             steps {
-                sh '''
-                    echo "PATH=$PATH"
-                    node --version
-                    pnpm --version
-                '''
+                sh 'corepack enable && node --version && pnpm --version'
             }
         }
+
         stage('Install Dependencies') {
             steps {
                 sh 'pnpm install --frozen-lockfile'
             }
         }
 
-        stage('Generate Prisma Client') {
+        stage('Prisma Generate') {
             steps {
                     sh 'pnpm exec prisma generate'
             }
@@ -28,78 +42,56 @@ pipeline {
             parallel {
                 stage('Lint') {
                     steps {
-                        sh 'pnpm run lint'
+                        sh 'pnpm run lint:ci'
                     }
                 }
                 stage('Test') {
                     steps {
-                        sh 'pnpm run test --coverage --runInBand'
+                        sh 'pnpm run test:cov --runInBand'
                     }
                 }
             }
         }
-        stage('Build') {
+
+        stage('SonarQube Analysis') {
             steps {
-                sh 'pnpm run build'
+                withSonarQubeEnv('sonarqube') { sh 'npx sonar-scanner' }
             }
         }
-        
-stage('SonarQube Analysis') {
-    steps {
-       sh '''
-          export JAVA_HOME=/opt/homebrew/opt/openjdk@21
-            export PATH=$JAVA_HOME/bin:$PATH
 
-            java -version
-                npx sonar-scanner \
-                -Dsonar.host.url=http://127.0.0.1:9000 \
-                -Dsonar.token=sqa_64801f31f1e77bfbcd148507fc7b0bc0c09e789c
-        '''
-    }
-}
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') { waitForQualityGate abortPipeline: true }
+            }
+        }
 
         stage('Docker build') {
-            steps {
-                sh 'DOCKER_BUILDKIT=0 docker build -t nestjs-auth:${BUILD_NUMBER} .'
-            }
+            steps { sh 'docker compose build api' }
         }
 
-        stage('Docker image') {
+        stage('Compose up & health check') {
             steps {
-                sh 'docker image ls nestjs-auth'
-            }
-        }
-        stage('Docker Run') {
-            steps {
-                withCredentials([file(
-                credentialsId: 'nestjs-env',
-                variable: 'ENV_FILE'
-            )]) {
+                withCredentials([file(credentialsId: 'nestjs-env', variable: 'ENV_FILE')]) {
                     sh '''
-                    docker rm -f nestjs-auth-t || true
-
-                    docker run -d \
-                        --name nestjs-auth-t \
-                        -p 4000:4000 \
-                        --env-file "$ENV_FILE" \
-                        nestjs-auth:${BUILD_NUMBER}
-                '''
-            }
-            }
-
-            post {
-                always {
-                    echo 'Pipeline finished'
-                }
-
-                success {
-                    echo 'Pipeline succeeded ✅'
-                }
-
-                failure {
-                    echo 'Pipeline failed ❌'
+            cp "$ENV_FILE" .env
+            docker compose up -d --wait
+            curl -fsS http://localhost:4000/health
+          '''
                 }
             }
         }
+    }
+
+    post {
+        always {
+            sh '''
+        docker compose logs --tail=100 || true
+        docker compose down -v --remove-orphans || true
+        rm -f .env
+      '''
+            cleanWs()
+        }
+        success { echo 'Pipeline succeeded' }
+        failure { echo 'Pipeline failed' }
     }
 }

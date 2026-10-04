@@ -80,6 +80,31 @@ pipeline {
                 }
             }
         }
+
+        stage('Push image to Dokcer Hub and Nexus') {
+            when {
+                expression { (env.BRANCH_NAME ?: env.GIT_BRANCH) ==~ /(origin\/)?main/ }
+            }
+
+            steps {
+                withCredentials([
+                    usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DH_USER' , passwordVariable: 'DH_PASSWORD'),
+                    usernamePassword(credentialsId: 'nexus-creds', usernameVariable: 'NEXUS_USER' , passwordVariable: 'NEXUS_PASSWORD')
+                ]) {
+                    sh '''
+                    echo "$DH_PASSWORD" | docker login -u "$DH_USER" --password-stdin
+                    echo "$NEXUS_PASSWORD" | docker login -u "$NEXUS_REGISTRY" -u "$NEXUS_USER" --password-stdin
+                    SRC="${IMAGE_NAME}:${IMAGE_TAG}"
+                    for TARGET in "${DH_USER}/${IMAGE_NAME}" "${NEXUS_REGISTRY}/${IMAGE_NAME}"; do
+                        docker tag "$SRC" "$TARGET:${IMAGE_TAG}"
+                        docker tag "$SRC" "$TARGET:latest"
+                        docker push "$TARGET:${IMAGE_TAG}"
+                        docker push "$TARGET:latest"
+                        done
+                     '''
+                }
+            }
+        }
     }
 
     post {
@@ -87,6 +112,8 @@ pipeline {
             sh '''
         docker compose logs --tail=100 || true
         docker compose down -v --remove-orphans || true
+        docker logout || true
+        docker logout "$NEXUS_REGISTRY" || true
         rm -f .env
       '''
             cleanWs()

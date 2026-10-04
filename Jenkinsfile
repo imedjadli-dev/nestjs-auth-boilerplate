@@ -17,7 +17,7 @@ pipeline {
         COMPOSE_PROJECT_NAME = "nestjs-auth-${BUILD_NUMBER}"
         IMAGE_NAME = 'nestjs-auth'
         IMAGE_TAG = "${BUILD_NUMBER}"
-        NEXUS_REGISTRY = '127.0.0.1:8081'
+        NEXUS_REGISTRY = '127.0.0.1:8082'
     }
 
     stages {

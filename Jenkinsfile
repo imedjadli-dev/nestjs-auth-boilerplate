@@ -70,6 +70,22 @@ pipeline {
             steps { sh 'docker compose build api' }
         }
 
+        stage('Trivy image scan'){
+            steps {
+                sh '''
+                 echo "Scanning image for vulnerabilities"
+                 trivy image --format table --output trivy-report.txt "${IMAGE_NAME}:${IMAGE_TAG}"
+                 trivy image --exit-code-1 --severity HIGH,CRITICAL --ignore-unfixed "${IMAGE_NAME}:${IMAGE_TAG}"
+                '''
+            }
+
+            post {
+                always {
+                    archiveArtifacts artifacts: 'trivy-report.txt', allowEmptyArchive: true
+                }
+            }
+        }
+
         stage('Compose up & health check') {
             steps {
                 withCredentials([file(credentialsId: 'nestjs-env', variable: 'ENV_FILE')]) {

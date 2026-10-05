@@ -87,6 +87,9 @@
       "json",
       "ts"
     ],
+    "transformIgnorePatterns": [
+      "node_modules/(?!.*\\.pnpm)(?!(@nestjs/terminus)/)"
+    ],
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {

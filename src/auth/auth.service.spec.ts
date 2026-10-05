@@ -43,9 +43,10 @@ const mockUser = {
 
 describe('AuthService', () => {
   let service: AuthService;
+  let module: TestingModule;
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [
         AuthService,
         { provide: PrismaService, useValue: mockPrismaService },
@@ -57,8 +58,9 @@ describe('AuthService', () => {
     service = module.get<AuthService>(AuthService);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     jest.clearAllMocks();
+    await module.close();
   });
 
   // SignUp
@@ -188,138 +190,6 @@ describe('AuthService', () => {
       mockPrismaService.users.findUnique.mockResolvedValue({
         ...mockUser,
         otpExpiresAt: new Date(Date.now() - 1000),
-      });
-
-      await expect(service.verifyEmail(1, '123456')).rejects.toThrow(
-        BadRequestException,
-      );
-    });
-
-    it('should throw BadRequestException if OTP is wrong', async () => {
-      mockPrismaService.users.findUnique.mockResolvedValue(mockUser);
-
-      await expect(service.verifyEmail(1, 'wrong')).rejects.toThrow(
-        BadRequestException,
-      );
-    });
-
-    it('should verify email successfully with correct OTP', async () => {
-      mockPrismaService.users.findUnique.mockResolvedValue(mockUser);
-      mockPrismaService.users.update.mockResolvedValue({});
-
-      const result = await service.verifyEmail(1, '123456');
-
-      expect(result.message).toBe('Email verified successfully');
-      expect(mockPrismaService.users.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: { isVerified: true, otp: null, otpExpiresAt: null },
-      });
-    });
-  });
-
-  describe('verifyEmail', () => {
-    it('should return already verified message if user is verified', async () => {
-      mockPrismaService.users.findUnique.mockResolvedValue({
-        ...mockUser,
-        isVerified: true,
-      });
-
-      const result = await service.verifyEmail(1, '123456');
-      expect(result.message).toBe('Email already verified');
-    });
-
-    it('should throw BadRequestException if OTP is expired', async () => {
-      mockPrismaService.users.findUnique.mockResolvedValue({
-        ...mockUser,
-        otpExpiresAt: new Date(Date.now() - 1000),
-      });
-
-      await expect(service.verifyEmail(1, '123456')).rejects.toThrow(
-        BadRequestException,
-      );
-    });
-
-    it('should throw BadRequestException if OTP is wrong', async () => {
-      mockPrismaService.users.findUnique.mockResolvedValue(mockUser);
-
-      await expect(service.verifyEmail(1, 'wrong')).rejects.toThrow(
-        BadRequestException,
-      );
-    });
-
-    it('should verify email successfully with correct OTP', async () => {
-      mockPrismaService.users.findUnique.mockResolvedValue(mockUser);
-      mockPrismaService.users.update.mockResolvedValue({});
-
-      const result = await service.verifyEmail(1, '123456');
-
-      expect(result.message).toBe('Email verified successfully');
-      expect(mockPrismaService.users.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: { isVerified: true, otp: null, otpExpiresAt: null },
-      });
-    });
-  });
-
-  describe('verifyEmail', () => {
-    it('should return already verified message if user is verified', async () => {
-      mockPrismaService.users.findUnique.mockResolvedValue({
-        ...mockUser,
-        isVerified: true,
-      });
-
-      const result = await service.verifyEmail(1, '123456');
-      expect(result.message).toBe('Email already verified');
-    });
-
-    it('should throw BadRequestException if OTP is expired', async () => {
-      mockPrismaService.users.findUnique.mockResolvedValue({
-        ...mockUser,
-        otpExpiresAt: new Date(Date.now() - 1000), // past
-      });
-
-      await expect(service.verifyEmail(1, '123456')).rejects.toThrow(
-        BadRequestException,
-      );
-    });
-
-    it('should throw BadRequestException if OTP is wrong', async () => {
-      mockPrismaService.users.findUnique.mockResolvedValue(mockUser);
-
-      await expect(service.verifyEmail(1, 'wrong')).rejects.toThrow(
-        BadRequestException,
-      );
-    });
-
-    it('should verify email successfully with correct OTP', async () => {
-      mockPrismaService.users.findUnique.mockResolvedValue(mockUser);
-      mockPrismaService.users.update.mockResolvedValue({});
-
-      const result = await service.verifyEmail(1, '123456');
-
-      expect(result.message).toBe('Email verified successfully');
-      expect(mockPrismaService.users.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: { isVerified: true, otp: null, otpExpiresAt: null },
-      });
-    });
-  });
-
-  describe('verifyEmail', () => {
-    it('should return already verified message if user is verified', async () => {
-      mockPrismaService.users.findUnique.mockResolvedValue({
-        ...mockUser,
-        isVerified: true,
-      });
-
-      const result = await service.verifyEmail(1, '123456');
-      expect(result.message).toBe('Email already verified');
-    });
-
-    it('should throw BadRequestException if OTP is expired', async () => {
-      mockPrismaService.users.findUnique.mockResolvedValue({
-        ...mockUser,
-        otpExpiresAt: new Date(Date.now() - 1000), // past
       });
 
       await expect(service.verifyEmail(1, '123456')).rejects.toThrow(

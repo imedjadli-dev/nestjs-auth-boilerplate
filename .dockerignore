@@ -1,14 +1,38 @@
+# Dependencies & Build Outputs
 node_modules
 dist
 coverage
 generated
+
+# Version Control & CI/CD
 .git
 .github
-.env*
-!.env.example
-*.log
-test
 Jenkinsfile
 docker-compose*.yml
+
+# Environment & Config
+.env*
+!.env.example
+
+# Logs & Temporary Files
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+.tmp
+tmp
+
+# Tests & Documentation
+test
 docs
 *.md
+
+# OS & IDE Junk (Mac / VS Code / JetBrains)
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+.vscode
+.idea
+*.swp
+*.swo

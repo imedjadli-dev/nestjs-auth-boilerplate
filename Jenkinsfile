@@ -79,7 +79,10 @@ pipeline {
             docker compose up -d --wait
 
             echo "Checking application health "
-            curl -fsS http://localhost:4000/health
+            curl --fail --silent --show-error \
+              http://localhost:4000/health
+
+            echo "Health check passed"  
           '''
                 }
             }
@@ -91,21 +94,24 @@ pipeline {
             }
 
             steps {
-                withCredentials([
-                    usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DH_USER' , passwordVariable: 'DH_PASSWORD'),
-                    usernamePassword(credentialsId: 'nexus-creds', usernameVariable: 'NEXUS_USER' , passwordVariable: 'NEXUS_PASSWORD')
-                ]) {
-                    sh '''
-                    echo "$DH_PASSWORD" | docker login -u "$DH_USER" --password-stdin
-                    echo "$NEXUS_PASSWORD" | docker login "$NEXUS_REGISTRY" -u "$NEXUS_USER" --password-stdin
-                    SRC="${IMAGE_NAME}:${IMAGE_TAG}"
-                    for TARGET in "${DH_USER}/${IMAGE_NAME}" "${NEXUS_REGISTRY}/${IMAGE_NAME}"; do
-                        docker tag "$SRC" "$TARGET:${IMAGE_TAG}"
-                        docker tag "$SRC" "$TARGET:latest"
-                        docker push "$TARGET:${IMAGE_TAG}"
-                        docker push "$TARGET:latest"
-                        done
-                     '''
+                retry(3){
+
+                    withCredentials([
+                        usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DH_USER' , passwordVariable: 'DH_PASSWORD'),
+                        usernamePassword(credentialsId: 'nexus-creds', usernameVariable: 'NEXUS_USER' , passwordVariable: 'NEXUS_PASSWORD')
+                    ]) {
+                        sh '''
+                        echo "$DH_PASSWORD" | docker login -u "$DH_USER" --password-stdin
+                        echo "$NEXUS_PASSWORD" | docker login "$NEXUS_REGISTRY" -u "$NEXUS_USER" --password-stdin
+                        SRC="${IMAGE_NAME}:${IMAGE_TAG}"
+                        for TARGET in "${DH_USER}/${IMAGE_NAME}" "${NEXUS_REGISTRY}/${IMAGE_NAME}"; do
+                            docker tag "$SRC" "$TARGET:${IMAGE_TAG}"
+                            docker tag "$SRC" "$TARGET:latest"
+                            docker push "$TARGET:${IMAGE_TAG}"
+                            docker push "$TARGET:latest"
+                            done
+                         '''
+                    }
                 }
             }
         }

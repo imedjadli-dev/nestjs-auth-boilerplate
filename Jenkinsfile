@@ -94,7 +94,7 @@ pipeline {
                 ]) {
                     sh '''
                     echo "$DH_PASSWORD" | docker login -u "$DH_USER" --password-stdin
-                    echo "$NEXUS_PASSWORD" | docker login -u "$NEXUS_REGISTRY" -u "$NEXUS_USER" --password-stdin
+                    echo "$NEXUS_PASSWORD" | docker login "$NEXUS_REGISTRY" -u "$NEXUS_USER" --password-stdin
                     SRC="${IMAGE_NAME}:${IMAGE_TAG}"
                     for TARGET in "${DH_USER}/${IMAGE_NAME}" "${NEXUS_REGISTRY}/${IMAGE_NAME}"; do
                         docker tag "$SRC" "$TARGET:${IMAGE_TAG}"

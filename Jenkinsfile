@@ -75,7 +75,10 @@ pipeline {
                 withCredentials([file(credentialsId: 'nestjs-env', variable: 'ENV_FILE')]) {
                     sh '''
             cp "$ENV_FILE" .env
+            echo " Staring application stack "
             docker compose up -d --wait
+
+            echo "Checking application health "
             curl -fsS http://localhost:4000/health
           '''
                 }

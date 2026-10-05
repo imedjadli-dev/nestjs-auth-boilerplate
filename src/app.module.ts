@@ -11,8 +11,13 @@ import { envValidationSchema } from './config/env.validation';
 import { EmailModule } from './email/email.module';
 import { LoggerMiddleware } from './middleware/logger.middleware';
 import { HealthController } from './health/health.controller';
+import { TerminusModule } from '@nestjs/terminus';
+import { RedisService } from './redis/redis.service';
+import { RedisModule } from './redis/redis.module';
 @Module({
   imports: [
+    TerminusModule,
+    RedisModule,
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
@@ -29,9 +34,14 @@ import { HealthController } from './health/health.controller';
     PrismaModule,
     AuthModule,
     EmailModule,
+    RedisModule,
   ],
   controllers: [AppController, HealthController],
-  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
+  providers: [
+    AppService,
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    RedisService,
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

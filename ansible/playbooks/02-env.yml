@@ -1,0 +1,15 @@
+---
+- name: Generate the application env
+  hosts: local
+  tasks:
+    - name: Create the deploy directory
+      ansible.builtin.file:
+        path: '{{ app_dir }}'
+        state: directory
+        mode: '0755'
+
+    - name: Render the .env file
+      ansible.builtin.template:
+        src: ../templates/env.j2
+        dest: '{{ app_dir }}/.env'
+        mode: '0600'

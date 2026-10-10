@@ -1,0 +1,36 @@
+---
+- name: Deploy the NestJS application with docker compose
+  hosts: local
+  vars:
+    repo_dir: '{{ playbook_dir }}/../..'
+  tasks:
+    - name: Create the deploy directory
+      ansible.builtin.file:
+        path: '{{ app_dir }}'
+        state: directory
+        mode: '0755'
+
+    - name: Render the .env file
+      ansible.builtin.template:
+        src: ../templates/env.j2
+        dest: '{{ app_dir }}/.env'
+        mode: '0600'
+
+    - name: Start the application
+      community.docker.docker_compose_v2:
+        project_src: '{{ repo_dir }}'
+        project_name: 'nestjs-auth-deploy'
+        env_files:
+          - '{{app_dir}}/.env'
+        state: present
+        wait: true
+        wait_timeout: 180
+
+    - name: check health endpoint
+      ansible.builtin.uri:
+        url: 'http://localhost:{{ app_port }}/health'
+        status_code: 200
+      register: health
+      retries: 10
+      delay: 3
+      until: health.status == 200

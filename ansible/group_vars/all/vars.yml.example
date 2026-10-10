@@ -1,0 +1,27 @@
+---
+app_dir: "{{ ansible_facts['env']['HOME'] }}/nestjs-auth-deploy"
+app_port: 4000
+image_name: nestjs-auth
+image_tag: local
+
+postgres_user: change-me
+postgres_db: change-me
+
+jwt_expires_in: change-me
+jwt_refresh_expires_in: change-me
+
+mail_host: sandbox.smtp.mailtrap.io
+mail_port: 2525
+mail_secure: 'false'
+mail_from: noreply@yourdomain.com
+
+grafana_admin_user: change-me
+
+# Secrets: the real values live in vault.yml (encrypted in Step 4)
+postgres_password: '{{ vault_postgres_password }}'
+redis_password: '{{ vault_redis_password }}'
+jwt_secret: '{{ vault_jwt_secret }}'
+jwt_refresh_secret: '{{ vault_jwt_refresh_secret }}'
+mail_user: '{{ vault_mail_user }}'
+mail_pass: '{{ vault_mail_pass }}'
+grafana_admin_password: '{{ vault_grafana_admin_password }}'

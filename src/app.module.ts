@@ -14,8 +14,14 @@ import { HealthController } from './health/health.controller';
 import { TerminusModule } from '@nestjs/terminus';
 import { RedisService } from './redis/redis.service';
 import { RedisModule } from './redis/redis.module';
+import { MetricsController } from './metrics/metrics.controller';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 @Module({
   imports: [
+    PrometheusModule.register({
+      defaultMetrics: { enabled: true },
+      controller: MetricsController,
+    }),
     TerminusModule,
     RedisModule,
     ThrottlerModule.forRoot([

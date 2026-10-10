@@ -88,23 +88,29 @@ pipeline {
             }
         }
 
-        stage('Compose up & health check') {
-            steps {
-                withCredentials([file(credentialsId: 'nestjs-env', variable: 'ENV_FILE')]) {
-                    sh '''
-            cp "$ENV_FILE" .env
-            echo " Staring application stack "
-            docker compose up -d --wait
+       stage('Compose up & health check') {
+    steps {
+        withCredentials([file(credentialsId: 'nestjs-env', variable: 'ENV_FILE')]) {
+            sh '''
+                cp "$ENV_FILE" .env
 
-            echo "Checking application health "
-            curl --fail --silent --show-error \
-              http://localhost:4000/health
+                echo "Validating compose files"
+                docker compose --profile monitoring config -q
 
-            echo "Health check passed"  
-          '''
-                }
-            }
+                echo "Starting application stack"
+                docker compose up -d --wait
+
+                echo "Checking application health"
+                curl --fail --silent --show-error http://localhost:4000/health
+                echo "Health check passed"
+
+                echo "Checking metrics endpoint"
+                curl --fail --silent --show-error http://localhost:4000/metrics > /dev/null
+                echo "Metrics endpoint OK"
+            '''
         }
+    }
+}
 
         stage('Push image to Dokcer Hub and Nexus') {
             when {

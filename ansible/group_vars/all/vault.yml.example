@@ -1,0 +1,8 @@
+---
+vault_postgres_password: 'change-me'
+vault_redis_password: 'change-me'
+vault_jwt_secret: 'change-me'
+vault_jwt_refresh_secret: 'change-me'
+vault_mail_user: 'change-me'
+vault_mail_pass: 'change-me'
+vault_grafana_admin_password: 'change-me'

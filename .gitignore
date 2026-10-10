@@ -56,3 +56,5 @@ pids
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 /generated/prisma
+/ansible/group_vars/all/vault.yml
+/ansible/group_vars/all/vars.yml

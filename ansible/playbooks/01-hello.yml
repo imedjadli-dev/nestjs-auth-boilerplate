@@ -1,0 +1,13 @@
+---
+- name: My first playbook
+  hosts: local
+  tasks:
+    - name: Print the OS
+      ansible.builtin.debug:
+        msg: "Running on {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}"
+
+    - name: Create the deploy directory
+      ansible.builtin.file:
+        path: "{{ ansible_facts['env']['HOME'] }}/nestjs-auth-deploy"
+        state: directory
+        mode: '0755'

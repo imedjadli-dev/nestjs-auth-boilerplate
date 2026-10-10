@@ -1,7 +1,7 @@
 x-app: &app
   build: .
   image: nestjs-auth:${IMAGE_TAG:-local}
-  env_file: .env
+  env_file: ${APP_ENV_FILE:-.env}
   environment:
     NODE_ENV: production
     DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}

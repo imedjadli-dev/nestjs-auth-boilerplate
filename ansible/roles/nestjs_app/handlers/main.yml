@@ -1,0 +1,11 @@
+---
+- name: Recreate the application container
+  community.docker.docker_compose_v2:
+    project_src: '{{ repo_dir }}'
+    project_name: '{{ compose_project_name }}'
+    env_files:
+      - '{{ app_dir }}/.env'
+    state: present
+    recreate: always
+    wait: true
+    wait_timeout: 180

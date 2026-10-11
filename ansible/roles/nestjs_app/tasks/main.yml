@@ -19,6 +19,7 @@
     src: env.j2
     dest: '{{ app_dir }}/.env'
     mode: '0600'
+  notify: Recreate the application container
 
 - name: Start the application
   community.docker.docker_compose_v2:
@@ -27,6 +28,7 @@
     env_files:
       - '{{ app_dir }}/.env'
     state: present
+    recreate: never
     wait: true
     wait_timeout: 180
   register: compose_result
@@ -38,6 +40,9 @@
 - name: Show what compose did
   ansible.builtin.debug:
     var: compose_result.actions
+
+- name: Run pending handlers now
+  ansible.builtin.meta: flush_handlers
 
 - name: Check the health endpoint
   ansible.builtin.uri:

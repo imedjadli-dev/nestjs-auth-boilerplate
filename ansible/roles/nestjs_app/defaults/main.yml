@@ -1,0 +1,3 @@
+---
+compose_project_name: nestjs-auth-deploy
+repo_dir: '{{ playbook_dir }}/..'

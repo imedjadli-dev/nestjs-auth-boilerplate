@@ -1,0 +1,49 @@
+---
+- name: Check that required secrets are defined
+  ansible.builtin.assert:
+    that:
+      - postgres_password is defined
+      - redis_password is defined
+      - jwt_secret is defined
+      - jwt_refresh_secret is defined
+    fail_msg: 'A required secret is missing. Check group_vars/all/.'
+
+- name: Create the deploy directory
+  ansible.builtin.file:
+    path: '{{ app_dir }}'
+    state: directory
+    mode: '0755'
+
+- name: Render the .env file
+  ansible.builtin.template:
+    src: env.j2
+    dest: '{{ app_dir }}/.env'
+    mode: '0600'
+
+- name: Start the application
+  community.docker.docker_compose_v2:
+    project_src: '{{ repo_dir }}'
+    project_name: '{{ compose_project_name }}'
+    env_files:
+      - '{{ app_dir }}/.env'
+    state: present
+    wait: true
+    wait_timeout: 180
+  register: compose_result
+  changed_when: >-
+    compose_result.actions | default([])
+    | rejectattr('id', 'search', '-migrate-')
+    | list | length > 0
+
+- name: Show what compose did
+  ansible.builtin.debug:
+    var: compose_result.actions
+
+- name: Check the health endpoint
+  ansible.builtin.uri:
+    url: 'http://localhost:{{ app_port }}/health'
+    status_code: 200
+  register: health
+  retries: 10
+  delay: 3
+  until: health.status == 200

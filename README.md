@@ -222,14 +222,37 @@ docker compose --profile monitoring up -d
 
 ## Deployment with Ansible
 
-The [`ansible/`](ansible) folder deploys the Compose stack on the local machine. It renders a `.env` file from a template, starts the stack with the `community.docker` collection and checks `GET /health`.
+The [`ansible/`](ansible) folder deploys the Compose stack on the local machine. Two roles do the work. `prerequisites` makes sure Homebrew and Docker Desktop are installed and Docker is running (macOS only). `nestjs_app` renders a `.env` file from a template, starts the stack with the `community.docker` collection and checks `GET /health`.
+
+```
+ansible/
+├── ansible.cfg
+├── inventory.ini
+├── requirements.yml            # Ansible collections
+├── site.yml                    # entry playbook
+├── group_vars/all/             # variables (real files are git-ignored)
+└── roles/
+    ├── prerequisites/          # installs Homebrew and Docker Desktop on macOS (tag: prerequisites)
+    │   ├── defaults/main.yml
+    │   └── tasks/main.yml
+    └── nestjs_app/             # deploys the stack (tag: deploy)
+        ├── defaults/main.yml       # default variables
+        ├── tasks/main.yml          # render .env, start the stack, check health
+        └── templates/env.j2        # .env template
+```
 
 **Prerequisites**
 
+- macOS
+- Ansible and the required collections:
+
 ```bash
 brew install ansible
-ansible-galaxy collection install community.docker
+cd ansible
+ansible-galaxy collection install -r requirements.yml
 ```
+
+The `prerequisites` role installs Homebrew and Docker Desktop when they are missing, and starts Docker Desktop when it is not running. On a first install, open Docker Desktop once to accept the license and approve the privileged helper.
 
 **Configure the variables**
 
@@ -240,7 +263,9 @@ Copy each `*.example` file in `ansible/group_vars/all/` to the same name without
 ```bash
 docker compose down         # stop a dev stack first: both use the same host ports
 cd ansible
-ansible-playbook playbooks/03-deploy.yml
+ansible-playbook site.yml                          # prerequisites + deploy
+ansible-playbook site.yml --tags prerequisites     # only install and check Docker
+ansible-playbook site.yml --tags deploy            # only deploy the stack
 ```
 
 Running the playbook again changes nothing when the configuration is the same. The deployment runs as its own Compose project (`nestjs-auth-deploy`), so it has its own volumes and starts from a clean database.
@@ -358,7 +383,8 @@ See [`prisma/schema.prisma`](prisma/schema.prisma) for the models and migrations
 - [x] Prometheus and Grafana monitoring
 - [x] Local deployment with Ansible
 - [ ] Fail the build on fixable CRITICAL vulnerabilities
-- [ ] Ansible roles and a Jenkins deploy stage
+- [x] Ansible role (`nestjs_app`)
+- [ ] Jenkins deploy stage that runs the Ansible playbook
 - [ ] HTTP request metrics (rate, latency, errors)
 
 ## License

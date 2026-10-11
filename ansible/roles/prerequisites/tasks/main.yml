@@ -1,0 +1,59 @@
+---
+- name: Check that this is macOS
+  ansible.builtin.assert:
+    that: ansible_facts['os_family'] == 'Darwin'
+    fail_msg: "This role only supports macOS (found {{ ansible_facts['os_family'] }})."
+
+- name: Check that Homebrew is installed
+  ansible.builtin.command: brew --version
+  register: brew_check
+  changed_when: false
+  failed_when: false
+
+- name: Install Homebrew if not present
+  ansible.builtin.shell: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  when: brew_check.rc != 0
+
+- name: Verify Homebrew version
+  ansible.builtin.command: brew --version
+  register: brew_verify
+  changed_when: false
+
+- name: Check whether Docker Desktop is installed
+  ansible.builtin.stat:
+    path: '{{ docker_app_path }}'
+  register: docker_app
+
+- name: Install Docker Desktop with Homebrew
+  community.general.homebrew_cask:
+    name: '{{ docker_desktop_cask }}'
+    state: present
+  when: not docker_app.stat.exists
+
+- name: Check whether the Docker daemon is running
+  ansible.builtin.command: docker info
+  register: docker_info
+  changed_when: false
+  failed_when: false
+
+- name: Start Docker Desktop
+  ansible.builtin.command: open -a Docker
+  changed_when: true
+  when: docker_info.rc != 0
+
+- name: Wait until the Docker daemon answers
+  ansible.builtin.command: docker info
+  register: docker_ready
+  changed_when: false
+  retries: 30
+  delay: 5
+  until: docker_ready.rc == 0
+
+- name: Verify that Docker Compose works
+  ansible.builtin.command: docker compose version
+  register: compose_version
+  changed_when: false
+
+- name: Show the Compose version
+  ansible.builtin.debug:
+    msg: '{{ compose_version.stdout }}'

@@ -1,0 +1,3 @@
+---
+docker_desktop_cask: docker-desktop
+docker_app_path: /Applications/Docker.app

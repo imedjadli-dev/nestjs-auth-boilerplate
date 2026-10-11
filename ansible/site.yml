@@ -1,0 +1,8 @@
+---
+- name: Deploy the NestJS application
+  hosts: local
+  roles:
+    - role: prerequisites
+      tags: [prerequisites]
+    - role: nestjs_app
+      tags: [deploy]

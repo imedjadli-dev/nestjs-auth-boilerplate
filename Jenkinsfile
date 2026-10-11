@@ -139,6 +139,26 @@ pipeline {
                 }
             }
         }
+
+        stage('Deploy with Ansible') {
+    when {
+        expression { (env.BRANCH_NAME ?: env.GIT_BRANCH) ==~ /(origin\/)?main/ }
+    }
+    steps {
+        withCredentials([file(credentialsId: 'ansible-vars', variable: 'ANSIBLE_VARS')]) {
+            sh '''
+                echo "Stopping the CI verification stack"
+                docker compose down -v --remove-orphans
+
+                cd ansible
+                ansible-galaxy collection install -r requirements.yml
+                ansible-playbook site.yml --tags deploy \
+                  -e @"$ANSIBLE_VARS" \
+                  -e image_tag="${IMAGE_TAG}"
+            '''
+        }
+    }
+}
     }
 
     post {

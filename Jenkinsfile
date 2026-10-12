@@ -112,6 +112,12 @@ pipeline {
     }
 }
 
+    stage('check docker connectivity') {
+        steps{
+            sh 'curl -I https://registry-1.docker.io/v2/' 
+        }
+    }
+
         stage('Push image to Dokcer Hub and Nexus') {
             when {
                 expression { (env.BRANCH_NAME ?: env.GIT_BRANCH) ==~ /(origin\/)?main/ }

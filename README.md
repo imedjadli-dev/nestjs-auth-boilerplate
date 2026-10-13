@@ -88,9 +88,9 @@ A production-ready authentication boilerplate built with NestJS, PostgreSQL, and
 
 Both endpoints are public, sit outside the `/api/v1` prefix and are not rate limited.
 
-| Method | Endpoint   | Description                                          |
-| ------ | ---------- | ---------------------------------------------------- |
-| GET    | `/health`  | Liveness check (used by Docker and CI)               |
+| Method | Endpoint   | Description                                     |
+| ------ | ---------- | ----------------------------------------------- |
+| GET    | `/health`  | Liveness check (used by Docker and CI)          |
 | GET    | `/metrics` | Prometheus metrics (default Node.js process metrics) |
 
 ## Getting Started
@@ -170,14 +170,14 @@ The image:
 
 ### Services
 
-| Service      | Description                                                           | Host port        | Profile      |
-| ------------ | --------------------------------------------------------------------- | ---------------- | ------------ |
-| `postgres`   | PostgreSQL 17 with a persistent volume and healthcheck                | `127.0.0.1:5433` | default      |
-| `redis`      | Redis 7, password protected, `noeviction` policy (required by BullMQ) | `127.0.0.1:6379` | default      |
-| `migrate`    | One-shot job that runs `prisma migrate deploy`, then exits            | none             | default      |
-| `api`        | The NestJS app, starts after Postgres, Redis and migrations are ready | `4000`           | default      |
-| `prometheus` | Scrapes the API `/metrics` endpoint every 15 seconds                  | `127.0.0.1:9090` | `monitoring` |
-| `grafana`    | Dashboards, provisioned from files                                    | `127.0.0.1:3000` | `monitoring` |
+| Service      | Description                                                            | Host port          | Profile      |
+| ------------ | ---------------------------------------------------------------------- | ------------------ | ------------ |
+| `postgres`   | PostgreSQL 17 with a persistent volume and healthcheck                 | `127.0.0.1:5433`   | default      |
+| `redis`      | Redis 7, password protected, `noeviction` policy (required by BullMQ)  | `127.0.0.1:6379`   | default      |
+| `migrate`    | One-shot job that runs `prisma migrate deploy`, then exits             | none               | default      |
+| `api`        | The NestJS app, starts after Postgres, Redis and migrations are ready  | `4000`             | default      |
+| `prometheus` | Scrapes the API `/metrics` endpoint every 15 seconds                   | `127.0.0.1:9090`   | `monitoring` |
+| `grafana`    | Dashboards, provisioned from files                                     | `127.0.0.1:3000`   | `monitoring` |
 
 Postgres is published on host port `5433` to avoid clashing with a local PostgreSQL on `5432`. Containers reach each other through the service names (`postgres`, `redis`).
 
@@ -210,10 +210,10 @@ Prometheus and Grafana are optional and sit behind the Compose profile `monitori
 docker compose --profile monitoring up -d
 ```
 
-| Tool       | URL                     | Notes                                                       |
-| ---------- | ----------------------- | ----------------------------------------------------------- |
-| Prometheus | `http://localhost:9090` | Status > Targets: `nestjs-api` should be UP                 |
-| Grafana    | `http://localhost:3000` | Log in with `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` |
+| Tool       | URL                     | Notes                                                        |
+| ---------- | ----------------------- | ------------------------------------------------------------ |
+| Prometheus | `http://localhost:9090` | Status > Targets: `nestjs-api` should be UP                  |
+| Grafana    | `http://localhost:3000` | Log in with `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD`  |
 
 - The API exposes default Node.js process metrics (CPU, memory, event loop lag) on `GET /metrics`.
 - The Prometheus datasource and the **NestJS API Overview** dashboard are provisioned from files in [`monitoring/`](monitoring), so nothing is configured by hand and everything comes back after `docker compose down -v`.
@@ -222,7 +222,7 @@ docker compose --profile monitoring up -d
 
 ## Deployment with Ansible
 
-The [`ansible/`](ansible) folder deploys the Compose stack on the local machine. Two roles do the work. `prerequisites` makes sure Homebrew and Docker Desktop are installed and Docker is running (macOS only). `nestjs_app` renders a `.env` file from a template, starts the stack with the `community.docker` collection and checks `GET /health`.
+The [`ansible/`](ansible) folder deploys the Compose stack on the local machine. Two roles do the work. `prerequisites` makes sure Homebrew and Docker Desktop are installed and Docker is running (macOS only). `nestjs_app` renders a `.env` file from a template, starts the stack with the `community.docker` collection and checks `GET /health`. A handler recreates the containers only when the rendered `.env` actually changed.
 
 ```
 ansible/
@@ -238,6 +238,7 @@ ansible/
     └── nestjs_app/             # deploys the stack (tag: deploy)
         ├── defaults/main.yml       # default variables
         ├── tasks/main.yml          # render .env, start the stack, check health
+        ├── handlers/main.yml       # recreate the stack when the .env changed
         └── templates/env.j2        # .env template
 ```
 
@@ -268,7 +269,7 @@ ansible-playbook site.yml --tags prerequisites     # only install and check Dock
 ansible-playbook site.yml --tags deploy            # only deploy the stack
 ```
 
-Running the playbook again changes nothing when the configuration is the same. The deployment runs as its own Compose project (`nestjs-auth-deploy`), so it has its own volumes and starts from a clean database.
+Running the playbook again changes nothing when the configuration is the same. Jenkins runs the `deploy` tag on `main` after the image is pushed (see [docs/CI.md](docs/CI.md)). The deployment runs as its own Compose project (`nestjs-auth-deploy`), so it has its own volumes and starts from a clean database.
 
 ## Authentication Flow
 
@@ -346,12 +347,11 @@ A Jenkins pipeline (`Jenkinsfile`) runs on every build:
 2. SonarQube analysis with a quality gate
 3. Docker image build
 4. Trivy image scan (HIGH and CRITICAL, report archived with the build; it does not fail the build yet)
-5. the full Docker Compose stack is started and verified through `GET /health` and `GET /metrics`
+5. the full Docker Compose stack is started and verified through `GET /health` and `GET /metrics`, then torn down
 6. on `main` only, the image is pushed to Docker Hub and Nexus, tagged with the build number and `latest`
+7. on `main` only, the same image tag is deployed with the Ansible role (`ansible-playbook site.yml --tags deploy`)
 
-The stack is torn down after each run, so the verification stages never leave anything running.
-
-Stages and the required Jenkins configuration are documented in [docs/CI.md](docs/CI.md).
+Stages, the required Jenkins configuration (tools, credentials, Nexus and Docker Hub setup) and the difference between the verification stack and the deployed stack are documented in [docs/CI.md](docs/CI.md).
 
 ## Database Schema
 
@@ -371,7 +371,7 @@ See [`prisma/schema.prisma`](prisma/schema.prisma) for the models and migrations
 - `.env` is never committed and is excluded from the Docker build context
 - Container images are scanned with Trivy in CI
 - CI secrets (SonarQube token, registry logins, application `.env`) are injected through Jenkins credentials
-- Ansible secret variables live in git-ignored files
+- Ansible secret variables live in git-ignored files (and in a Jenkins secret file in CI)
 - `/metrics` is public: restrict it at the reverse proxy in production
 
 ## Roadmap
@@ -381,10 +381,8 @@ See [`prisma/schema.prisma`](prisma/schema.prisma) for the models and migrations
 - [x] Push the image to Docker Hub and Nexus
 - [x] Image vulnerability scan (Trivy), report only
 - [x] Prometheus and Grafana monitoring
-- [x] Local deployment with Ansible
-- [ ] Fail the build on fixable CRITICAL vulnerabilities
-- [x] Ansible role (`nestjs_app`)
-- [ ] Jenkins deploy stage that runs the Ansible playbook
+- [x] Local deployment with Ansible (role, handler)
+- [x] Jenkins deploy stage that runs the Ansible playbook (`main` only)
 - [ ] HTTP request metrics (rate, latency, errors)
 
 ## License

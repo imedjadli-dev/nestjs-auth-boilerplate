@@ -128,7 +128,7 @@ pipeline {
             usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DH_USER' , passwordVariable: 'DH_PASSWORD'),
             usernamePassword(credentialsId: 'nexus-creds', usernameVariable: 'NEXUS_USER' , passwordVariable: 'NEXUS_PASSWORD')
         ]) {
-            // 1. Push to Nexus (Local registry, fast and reliable)
+            //  Push to Nexus 
             sh '''
             SRC="${IMAGE_NAME}:${IMAGE_TAG}"
             echo "$NEXUS_PASSWORD" | docker login "$NEXUS_REGISTRY" -u "$NEXUS_USER" --password-stdin
@@ -138,7 +138,7 @@ pipeline {
             docker push "${NEXUS_REGISTRY}/${IMAGE_NAME}:latest"
             '''
 
-            // 2. Push to Docker Hub with retry and timeout protection
+            // Push to Docker Hub with 
             retry(3) {
                 timeout(time: 15, unit: 'MINUTES') {
                     sh '''

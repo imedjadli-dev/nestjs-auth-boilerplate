@@ -118,33 +118,42 @@ pipeline {
         }
     }
 
-        stage('Push image to Dokcer Hub and Nexus') {
-            when {
-                expression { (env.BRANCH_NAME ?: env.GIT_BRANCH) ==~ /(origin\/)?main/ }
-            }
+       stage('Push image to Docker Hub and Nexus') {
+    when {
+        expression { (env.BRANCH_NAME ?: env.GIT_BRANCH) ==~ /(origin\/)?main/ }
+    }
 
-            steps {
-                retry(3){
+    steps {
+        withCredentials([
+            usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DH_USER' , passwordVariable: 'DH_PASSWORD'),
+            usernamePassword(credentialsId: 'nexus-creds', usernameVariable: 'NEXUS_USER' , passwordVariable: 'NEXUS_PASSWORD')
+        ]) {
+            // 1. Push to Nexus (Local registry, fast and reliable)
+            sh '''
+            SRC="${IMAGE_NAME}:${IMAGE_TAG}"
+            echo "$NEXUS_PASSWORD" | docker login "$NEXUS_REGISTRY" -u "$NEXUS_USER" --password-stdin
+            docker tag "$SRC" "${NEXUS_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+            docker tag "$SRC" "${NEXUS_REGISTRY}/${IMAGE_NAME}:latest"
+            docker push "${NEXUS_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+            docker push "${NEXUS_REGISTRY}/${IMAGE_NAME}:latest"
+            '''
 
-                    withCredentials([
-                        usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DH_USER' , passwordVariable: 'DH_PASSWORD'),
-                        usernamePassword(credentialsId: 'nexus-creds', usernameVariable: 'NEXUS_USER' , passwordVariable: 'NEXUS_PASSWORD')
-                    ]) {
-                        sh '''
-                        echo "$DH_PASSWORD" | docker login -u "$DH_USER" --password-stdin
-                        echo "$NEXUS_PASSWORD" | docker login "$NEXUS_REGISTRY" -u "$NEXUS_USER" --password-stdin
-                        SRC="${IMAGE_NAME}:${IMAGE_TAG}"
-                        for TARGET in "${DH_USER}/${IMAGE_NAME}" "${NEXUS_REGISTRY}/${IMAGE_NAME}"; do
-                            docker tag "$SRC" "$TARGET:${IMAGE_TAG}"
-                            docker tag "$SRC" "$TARGET:latest"
-                            docker push "$TARGET:${IMAGE_TAG}"
-                            docker push "$TARGET:latest"
-                            done
-                         '''
-                    }
+            // 2. Push to Docker Hub with retry and timeout protection
+            retry(3) {
+                timeout(time: 15, unit: 'MINUTES') {
+                    sh '''
+                    SRC="${IMAGE_NAME}:${IMAGE_TAG}"
+                    echo "$DH_PASSWORD" | docker login -u "$DH_USER" --password-stdin
+                    docker tag "$SRC" "${DH_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
+                    docker tag "$SRC" "${DH_USER}/${IMAGE_NAME}:latest"
+                    docker push "${DH_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
+                    docker push "${DH_USER}/${IMAGE_NAME}:latest"
+                    '''
                 }
             }
         }
+    }
+}
 
         stage('Deploy with Ansible') {
     when {

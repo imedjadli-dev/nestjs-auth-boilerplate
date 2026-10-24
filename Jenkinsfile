@@ -145,8 +145,7 @@ stage('Push image to Docker Hub and Nexus') {
                         SRC="${IMAGE_NAME}:${IMAGE_TAG}"
                         echo "$DH_PASSWORD" | docker login -u "$DH_USER" --password-stdin
                         docker tag "$SRC" "${DH_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
-
-                        docker push --max-concurrent-uploads=1 "${DH_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
+                        docker push "${DH_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
                         '''
                     }
                 }

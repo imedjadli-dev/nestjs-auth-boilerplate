@@ -129,29 +129,26 @@ stage('Push image to Docker Hub and Nexus') {
             usernamePassword(credentialsId: 'nexus-creds', usernameVariable: 'NEXUS_USER' , passwordVariable: 'NEXUS_PASSWORD')
         ]) {
             script {
-                parallel(
-                    "Nexus Push": {
+                // 1. Push to Nexus
+                sh '''
+                echo "Nexus User: ${NEXUS_USER}"
+                SRC="${IMAGE_NAME}:${IMAGE_TAG}"
+                echo "$NEXUS_PASSWORD" | docker login "$NEXUS_REGISTRY" -u "$NEXUS_USER" --password-stdin
+                docker tag "$SRC" "${NEXUS_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+                docker push "${NEXUS_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+                '''
+
+                // 2. Push to Docker Hub
+                retry(3) {
+                    timeout(time: 15, unit: 'MINUTES') {
                         sh '''
-                        echo "Nexus User: ${NEXUS_USER}"
                         SRC="${IMAGE_NAME}:${IMAGE_TAG}"
-                        echo "$NEXUS_PASSWORD" | docker login "$NEXUS_REGISTRY" -u "$NEXUS_USER" --password-stdin
-                        docker tag "$SRC" "${NEXUS_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
-                        docker push "${NEXUS_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+                        echo "$DH_PASSWORD" | docker login -u "$DH_USER" --password-stdin
+                        docker tag "$SRC" "${DH_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
+                        docker push "${DH_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
                         '''
-                    },
-                    "Docker Hub Push": {
-                        retry(3) {
-                            timeout(time: 15, unit: 'MINUTES') {
-                                sh '''
-                                SRC="${IMAGE_NAME}:${IMAGE_TAG}"
-                                echo "$DH_PASSWORD" | docker login -u "$DH_USER" --password-stdin
-                                docker tag "$SRC" "${DH_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
-                                docker push "${DH_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
-                                '''
-                            }
-                        }
                     }
-                )
+                }
             }
         }
     }

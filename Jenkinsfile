@@ -130,6 +130,8 @@ pipeline {
         ]) {
             //  Push to Nexus 
             sh '''
+          echo "Docker User: ${DH_USER}"
+            echo "Nexus User: ${NEXUS_USER}"
             SRC="${IMAGE_NAME}:${IMAGE_TAG}"
             echo "$NEXUS_PASSWORD" | docker login "$NEXUS_REGISTRY" -u "$NEXUS_USER" --password-stdin
             docker tag "$SRC" "${NEXUS_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"

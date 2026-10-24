@@ -129,7 +129,7 @@ stage('Push image to Docker Hub and Nexus') {
             usernamePassword(credentialsId: 'nexus-creds', usernameVariable: 'NEXUS_USER' , passwordVariable: 'NEXUS_PASSWORD')
         ]) {
             script {
-                // 1. Push to Nexus
+                // 1. Push to Nexus (Instant & Local)
                 sh '''
                 echo "Nexus User: ${NEXUS_USER}"
                 SRC="${IMAGE_NAME}:${IMAGE_TAG}"
@@ -138,14 +138,16 @@ stage('Push image to Docker Hub and Nexus') {
                 docker push "${NEXUS_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
                 '''
 
-                // 2. Push to Docker Hub
+                // 2. Push to Docker Hub (Sequential layer pushing to prevent OrbStack/Network stalls)
                 retry(3) {
                     timeout(time: 15, unit: 'MINUTES') {
                         sh '''
                         SRC="${IMAGE_NAME}:${IMAGE_TAG}"
                         echo "$DH_PASSWORD" | docker login -u "$DH_USER" --password-stdin
                         docker tag "$SRC" "${DH_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
-                        docker push "${DH_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
+
+                        # Push with restricted concurrent uploads to guarantee delivery over OrbStack
+                        docker push --max-concurrent-uploads=1 "${DH_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
                         '''
                     }
                 }

@@ -118,41 +118,41 @@ pipeline {
         }
     }
 
-       stage('Push image to Docker Hub and Nexus') {
+stage('Push image to Docker Hub and Nexus') {
     when {
         expression { (env.BRANCH_NAME ?: env.GIT_BRANCH) ==~ /(origin\/)?main/ }
     }
 
     steps {
-    withCredentials([
-        usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DH_USER' , passwordVariable: 'DH_PASSWORD'),
-        usernamePassword(credentialsId: 'nexus-creds', usernameVariable: 'NEXUS_USER' , passwordVariable: 'NEXUS_PASSWORD')
-    ]) {
-        parallel(
-            "Nexus Push": {
-                sh '''
-                echo "Nexus User: ${NEXUS_USER}"
-                SRC="${IMAGE_NAME}:${IMAGE_TAG}"
-                echo "$NEXUS_PASSWORD" | docker login "$NEXUS_REGISTRY" -u "$NEXUS_USER" --password-stdin
-                docker tag "$SRC" "${NEXUS_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
-                docker push "${NEXUS_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
-                '''
-            },
-            "Docker Hub Push": {
-                retry(3) {
-                    timeout(time: 15, unit: 'MINUTES') {
-                        sh '''
-                        SRC="${IMAGE_NAME}:${IMAGE_TAG}"
-                        echo "$DH_PASSWORD" | docker login -u "$DH_USER" --password-stdin
-                        docker tag "$SRC" "${DH_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
-                        docker push "${DH_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
-                        '''
+        withCredentials([
+            usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DH_USER' , passwordVariable: 'DH_PASSWORD'),
+            usernamePassword(credentialsId: 'nexus-creds', usernameVariable: 'NEXUS_USER' , passwordVariable: 'NEXUS_PASSWORD')
+        ]) {
+            parallel(
+                "Nexus Push": {
+                    sh '''
+                    echo "Nexus User: ${NEXUS_USER}"
+                    SRC="${IMAGE_NAME}:${IMAGE_TAG}"
+                    echo "$NEXUS_PASSWORD" | docker login "$NEXUS_REGISTRY" -u "$NEXUS_USER" --password-stdin
+                    docker tag "$SRC" "${NEXUS_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+                    docker push "${NEXUS_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+                    '''
+                },
+                "Docker Hub Push": {
+                    retry(3) {
+                        timeout(time: 15, unit: 'MINUTES') {
+                            sh '''
+                            SRC="${IMAGE_NAME}:${IMAGE_TAG}"
+                            echo "$DH_PASSWORD" | docker login -u "$DH_USER" --password-stdin
+                            docker tag "$SRC" "${DH_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
+                            docker push "${DH_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
+                            '''
+                        }
                     }
                 }
-            }
-        )
+            )
+        }
     }
-}
 }
 
         stage('Deploy with Ansible') {
@@ -180,7 +180,7 @@ pipeline {
         always {
             sh '''
         docker compose logs --tail=100 || true
-      
+        docker compose down -v --remove-orphans || true
         docker logout || true
         docker logout "$NEXUS_REGISTRY" || true
         rm -f .env
